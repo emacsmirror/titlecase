@@ -305,10 +305,14 @@ values."
         (apply #'call-process-region (point-min) (point-max)
                (car titlecase-command) t t nil
                (mapcar (lambda (s)
-                         (format "%s" (if (eq s 'style) titlecase-style s)))
+                         (format "%s" (if (or (null s)
+                                              (eq s 'style))
+                                          titlecase-style
+                                        s)))
                        (cdr titlecase-command))))
        ((functionp titlecase-command)
-        (funcall titlecase-command (point-min) (point-max) style)))
+        (funcall titlecase-command (point-min) (point-max)
+                 (or style titlecase-style))))
       ;; Ensure that the string has no extra trailing whitespace.
       (goto-char (point-max))            ; Go to the end of the buffer
       (newline)                          ; Ensure at least one newline
@@ -334,10 +338,11 @@ When called interactively , or when INTERACTIVEP is non-nil,
 for the style to use."
   (interactive "*r\ni\nP")
   (atomic-change-group
-    (let ((pt (point))
-          (style (titlecase--arg style interactivep)))
-      (insert (titlecase--string (delete-and-extract-region begin end) style))
-      (goto-char pt))))
+    (save-excursion                     ; `replace-region-contents'
+      (save-restriction
+        (narrow-to-region begin end)
+        (insert (titlecase--string (delete-and-extract-region begin end)
+                                   style))))))
 
 ;;;###autoload
 (defun titlecase-line (&optional point style interactivep)
